@@ -1,0 +1,6 @@
+{
+  "name": "FireLog AI - 소방관 프로필 및 통합 API 키 관리",
+  "description": "부산소방 소속 소방관 프로필 관리, 부산 119 공공데이터 및 Gemini API 키 검증/로컬 보안 저장, 관할 센터 자동 필터링 및 소방활동일지 자동 날인 시스템",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
