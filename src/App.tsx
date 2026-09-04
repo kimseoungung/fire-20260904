@@ -121,6 +121,7 @@ export default function App() {
               videoRecords={videoRecords}
               onSelectForReport={handleSelectForReport}
               onSelectForVideo={handleSelectForVideo}
+              onUpdateDispatches={setDispatches}
             />
           )}
 

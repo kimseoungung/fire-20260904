@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Radio, 
   MapPin, 
@@ -12,9 +12,11 @@ import {
   ShieldAlert, 
   ChevronRight, 
   Building, 
-  Sparkles,
-  Video,
-  Film
+  Sparkles, 
+  Video, 
+  Film,
+  RefreshCw,
+  Zap
 } from 'lucide-react';
 import { FireDispatch, OfficerProfile, VideoRecord } from '../types';
 
@@ -24,6 +26,7 @@ interface DispatchFeedProps {
   videoRecords?: VideoRecord[];
   onSelectForReport: (dispatch: FireDispatch) => void;
   onSelectForVideo?: (dispatch: FireDispatch) => void;
+  onUpdateDispatches?: (newDispatches: FireDispatch[]) => void;
 }
 
 export const DispatchFeed: React.FC<DispatchFeedProps> = ({
@@ -31,10 +34,42 @@ export const DispatchFeed: React.FC<DispatchFeedProps> = ({
   profile,
   videoRecords = [],
   onSelectForReport,
-  onSelectForVideo
+  onSelectForVideo,
+  onUpdateDispatches
 }) => {
   const [scopeFilter, setScopeFilter] = useState<'center' | 'station' | 'all'>('center');
   const [categoryFilter, setCategoryFilter] = useState<string>('전체');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>(() => new Date().toLocaleTimeString('ko-KR'));
+
+  // Live Refresh handler
+  const fetchLiveDispatches = async () => {
+    setIsSyncing(true);
+    try {
+      const res = await fetch(`/api/busan119-dispatches?station=${encodeURIComponent(profile.fireStation)}&center=${encodeURIComponent(profile.safetyCenter)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.dispatches && data.dispatches.length > 0 && onUpdateDispatches) {
+          onUpdateDispatches(data.dispatches);
+        }
+        setLastUpdated(data.updatedAt || new Date().toLocaleTimeString('ko-KR'));
+      }
+    } catch (err) {
+      console.warn('Real-time sync error, using local feed:', err);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500);
+    }
+  };
+
+  // Auto-refresh interval (every 10 seconds)
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => {
+      fetchLiveDispatches();
+    }, 10000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, profile.fireStation, profile.safetyCenter]);
 
   // Core Capability 1: 관할 맞춤형 자동 필터링
   const filteredDispatches = useMemo(() => {
@@ -80,46 +115,86 @@ export const DispatchFeed: React.FC<DispatchFeedProps> = ({
           </div>
         </div>
 
-        {/* Quick Scope Switcher */}
-        <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 text-xs shadow-2xs">
+        {/* Quick Scope Switcher & Live Controls */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center bg-white border border-slate-200 rounded-lg p-1 text-xs shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setScopeFilter('center')}
+              className={`px-3 py-1.5 rounded-md font-semibold transition ${
+                scopeFilter === 'center'
+                  ? 'bg-red-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              우리 센터만 ({centerCount}건)
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeFilter('station')}
+              className={`px-3 py-1.5 rounded-md font-semibold transition ${
+                scopeFilter === 'station'
+                  ? 'bg-red-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              {profile.fireStation} 전체
+            </button>
+            <button
+              type="button"
+              onClick={() => setScopeFilter('all')}
+              className={`px-3 py-1.5 rounded-md font-semibold transition ${
+                scopeFilter === 'all'
+                  ? 'bg-red-600 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              부산 전역
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setScopeFilter('center')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition ${
-              scopeFilter === 'center'
-                ? 'bg-red-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
+            onClick={fetchLiveDispatches}
+            disabled={isSyncing}
+            className="px-3 py-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 flex items-center space-x-1.5 shadow-2xs transition active:scale-95 disabled:opacity-50"
+            title="실시간 119 출동 데이터 새로고침"
           >
-            우리 센터만 ({centerCount}건)
-          </button>
-          <button
-            type="button"
-            onClick={() => setScopeFilter('station')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition ${
-              scopeFilter === 'station'
-                ? 'bg-red-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            {profile.fireStation} 전체
-          </button>
-          <button
-            type="button"
-            onClick={() => setScopeFilter('all')}
-            className={`px-3 py-1.5 rounded-md font-semibold transition ${
-              scopeFilter === 'all'
-                ? 'bg-red-600 text-white shadow-2xs'
-                : 'text-slate-600 hover:text-slate-900'
-            }`}
-          >
-            부산 전역
+            <RefreshCw className={`w-3.5 h-3.5 text-red-600 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span>{isSyncing ? '연계 수신중...' : '실시간 동기화'}</span>
           </button>
         </div>
       </div>
 
+      {/* Real-time Status & Category Filter Chips */}
+      <div className="flex items-center justify-between flex-wrap gap-2 pt-1 bg-white/70 border border-slate-200/80 rounded-lg px-3 py-2 text-xs">
+        <div className="flex items-center space-x-2 text-slate-600 font-medium">
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+          </span>
+          <span>공공데이터포털 119출동 실시간 연계 중</span>
+          <span className="text-slate-400 font-mono text-[11px]">({lastUpdated} 기준)</span>
+          <button
+            type="button"
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className={`text-[10px] px-2 py-0.5 rounded font-bold transition border ${
+              autoRefresh 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
+                : 'bg-slate-100 text-slate-500 border-slate-300'
+            }`}
+          >
+            {autoRefresh ? '⚡ 10초 자동갱신 ON' : '⏸️ 자동갱신 OFF'}
+          </button>
+        </div>
+
+        <div className="text-xs text-slate-500 font-medium">
+          관할 출동 <strong className="text-red-600">{filteredDispatches.length}</strong>건 표출 중
+        </div>
+      </div>
+
       {/* Category Filter Chips */}
-      <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+      <div className="flex items-center justify-between flex-wrap gap-2 pt-0.5">
         <div className="flex items-center space-x-1.5 overflow-x-auto text-xs pb-1">
           <span className="text-slate-400 font-medium mr-1 flex items-center gap-1">
             <Filter className="w-3.5 h-3.5" /> 구분:

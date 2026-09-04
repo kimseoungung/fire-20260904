@@ -17,7 +17,7 @@ const DEFAULT_PROFILE: OfficerProfile = {
 };
 
 const DEFAULT_CONFIG: ApiConfiguration = {
-  busan119Key: '',
+  busan119Key: '2Q5DXsf8atxDXpDBIeKR9lf8kNGec%2FnnfQtw96BmNyp06wpXz6f7rnOrg%2BtvyIGWuAnq34sfFHWKk8tpjAsWdA%3D%3D',
   geminiKey: ''
 };
 

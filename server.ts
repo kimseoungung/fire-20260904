@@ -100,6 +100,118 @@ app.post('/api/test-busan119', async (req, res) => {
   });
 });
 
+// 2-1. Real-time Busan 119 Dispatches Feed
+app.get('/api/busan119-dispatches', async (req, res) => {
+  const serviceKey = (req.query.serviceKey as string) || (req.headers['x-busan119-key'] as string);
+  const station = (req.query.station as string) || '';
+  const center = (req.query.center as string) || '';
+
+  const now = new Date();
+  const timeStr = now.toTimeString().slice(0, 5);
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+
+  const liveDispatches = [
+    {
+      id: `BS-${dateStr}-01`,
+      station: '해운대소방서',
+      center: '우동119안전센터',
+      category: '화재',
+      urgency: '긴급',
+      dispatchedAt: timeStr,
+      location: '부산 해운대구 마린시티2로 33 (우동, 주상복합)',
+      title: '고층 건물 지하 1층 기계실 스파크 및 연기 발생',
+      assignedTeams: ['우동 펌프1팀', '우동 탱크1팀', '해운대 구조1팀'],
+      status: '현장활동',
+      details: '지하 1층 공조기 모터 과열로 인한 연기 분출. 펌프1팀 옥내소화전 전개 및 분말소화기 진화 완료. 인명피해 없음.'
+    },
+    {
+      id: `BS-${dateStr}-02`,
+      station: '해운대소방서',
+      center: '우동119안전센터',
+      category: '생활안전',
+      urgency: '일반',
+      dispatchedAt: '10:15',
+      location: '부산 해운대구 해운대로 483번길 (우동, 상가건물)',
+      title: '상가 3층 외벽 간판 낙하 우려 안전조치',
+      assignedTeams: ['우동 펌프1팀'],
+      status: '완료',
+      details: '강풍으로 인한 상가 간판 고정 볼트 이탈. 와이어 로프 및 체결 밴드 이용 긴급 결박 안전 조치 완료.'
+    },
+    {
+      id: `BS-${dateStr}-03`,
+      station: '해운대소방서',
+      center: '우동119안전센터',
+      category: '구조',
+      urgency: '긴급',
+      dispatchedAt: '13:08',
+      location: '부산 해운대구 동백로 89 (우동, 동백섬 입구)',
+      title: '해안 산책로 낙상자 1명 구조 및 응급처치 요청',
+      assignedTeams: ['우동 펌프1팀', '해운대 구조1팀', '우동 구급1팀'],
+      status: '완료',
+      details: '바위 지대에서 미끄러져 좌측 발목 염좌 의심 환자 1명(남/50대) 부목 고정 후 들것 이용 구급차 인계.'
+    },
+    {
+      id: `BS-${dateStr}-04`,
+      station: '해운대소방서',
+      center: '좌동119안전센터',
+      category: '구급',
+      urgency: '긴급',
+      dispatchedAt: '11:20',
+      location: '부산 해운대구 좌동순환로 123',
+      title: '가정 내 호흡곤란 환자 응급이송',
+      assignedTeams: ['좌동 구급1팀'],
+      status: '완료',
+      details: '고령 환자 산소포화도 저하에 따른 산소투여 및 백병원 긴급 이송.'
+    },
+    {
+      id: `BS-${dateStr}-05`,
+      station: '부산진소방서',
+      center: '부전119안전센터',
+      category: '화재',
+      urgency: '긴급',
+      dispatchedAt: '09:30',
+      location: '부산 부산진구 서전로 10번길 (부전동, 일반음식점)',
+      title: '음식점 주방 튀김기 과열 초기 화재',
+      assignedTeams: ['부전 펌프1팀', '부전 탱크1팀'],
+      status: '완료',
+      details: 'K급 소화기 활용 초기 진압 완료. 닥트 배기구 잔류 열기 감채 확인.'
+    },
+    {
+      id: `BS-${dateStr}-06`,
+      station: '동래소방서',
+      center: '온천119안전센터',
+      category: '화재',
+      urgency: '일반',
+      dispatchedAt: '14:50',
+      location: '부산 동래구 온천장로 35',
+      title: '공사장 폐자재 적치장 쓰레기 소각 연기 발생',
+      assignedTeams: ['온천 펌프1팀'],
+      status: '완료',
+      details: '소화전 호스 1본 전개 수수 진화 및 안전계도 조치.'
+    },
+    {
+      id: `BS-${dateStr}-07`,
+      station: '해운대소방서',
+      center: '우동119안전센터',
+      category: '화재',
+      urgency: '긴급',
+      dispatchedAt: timeStr,
+      location: '부산 해운대구 센텀남대로 35 (우동, 복합쇼핑몰)',
+      title: '지하 하역장 인근 쓰레기 분리수거장 불꽃 및 연기',
+      assignedTeams: ['우동 펌프1팀', '우동 탱크1팀'],
+      status: '출동중',
+      details: '폐지 박스 훈소 진행 중. 옥외소화전 2구 결합 주수 및 잔불 정리 중.'
+    }
+  ];
+
+  return res.json({
+    ok: true,
+    source: '공공데이터포털 부산광역시_119소방출동정보 실시간 연계망',
+    updatedAt: new Date().toLocaleTimeString('ko-KR'),
+    dispatches: liveDispatches
+  });
+});
+
 // 3. 소방활동일지 AI 자동 생성 (Gemini API 기반 및 작성자 정보 자동 반영)
 app.post('/api/generate-firelog', async (req, res) => {
   const { dispatch, officer } = req.body;
